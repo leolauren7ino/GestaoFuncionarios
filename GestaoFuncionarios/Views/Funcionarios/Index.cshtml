@@ -1,0 +1,294 @@
+@{
+    ViewData["Title"] = "Cadastro de Funcionários";
+}
+
+<script src="~/js/validacoes.js"></script>
+
+<h4>Cadastro de Funcionários</h4>
+<p class="text-muted">Vertex Solutions · RH</p>
+
+<div id="painel-cadastro-funcionario" class="border rounded p-3">
+
+    <div class="form-row">
+        <div class="form-group col-md-3">
+            <label for="txt-nome">Nome:</label>
+            <input type="text" id="txt-nome" autocomplete="off" class="form-control form-control-sm text-uppercase" placeholder="Digite o nome" />
+        </div>
+        <div class="form-group col-md-2">
+            <label for="txt-matricula">Matrícula:</label>
+            <input type="text" id="txt-matricula" autocomplete="off" class="form-control form-control-sm" placeholder="Matrícula" />
+        </div>
+        <div class="form-group col-md-2">
+            <label for="cbo-departamento">Departamento:</label>
+            <select id="cbo-departamento" class="form-control form-control-sm">
+                <option value="">Selecione</option>
+                <option value="TI">TI</option>
+                <option value="RH">RH</option>
+                <option value="Financeiro">Financeiro</option>
+                <option value="Operações">Operações</option>
+                <option value="Comercial">Comercial</option>
+            </select>
+        </div>
+        <div class="form-group col-md-2">
+            <label for="cbo-sexo">Sexo:</label>
+            <select id="cbo-sexo" class="form-control form-control-sm">
+                <option value="">Selecione</option>
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+            </select>
+        </div>
+        <div class="form-group col-md-3">
+            <label for="txt-cargo">Cargo:</label>
+            <input type="text" id="txt-cargo" autocomplete="off" class="form-control form-control-sm text-uppercase" placeholder="Cargo" />
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-2">
+            <label for="txt-salario">Salário:</label>
+            <input type="text" id="txt-salario" autocomplete="off" class="form-control form-control-sm" placeholder="0,00"
+                   onkeydown="ForceNumericInput(event, this, true, false, 2, 15)" />
+        </div>
+        <div class="form-group col-md-2">
+            <label for="txt-dt-nascimento">Dt. Nascimento:</label>
+            <input type="text" id="txt-dt-nascimento" autocomplete="off" class="form-control form-control-sm" placeholder="dd/mm/aaaa" />
+        </div>
+    </div>
+
+    <div class="text-right">
+        <button id="btn-adicionar-registro" type="button" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus"></i> Adicionar Registro
+        </button>
+    </div>
+
+    <hr />
+
+    <div class="table-responsive">
+        <table id="table-funcionarios" data-unique-id="id" class="table table-striped table-sm border"
+               data-pagination="true" data-page-list="[10, 25, 50, 100, All]"></table>
+    </div>
+
+    <div class="text-right">
+        <button onclick="GerarRelatorio('JSON')" class="btn btn-sm btn-primary mr-2"><i class="fas fa-file-code"></i> Gerar Json</button>
+        <button onclick="GerarRelatorio('PDF')" class="btn btn-sm btn-danger mr-2"><i class="fas fa-file-pdf"></i> Gerar PDF</button>
+        <button onclick="GerarRelatorio('EXCEL')" class="btn btn-sm btn-success"><i class="fas fa-file-excel"></i> Gerar Excel</button>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ===== URLs (equivalente ao @@Url.Action do projeto original -> aqui tudo é do MESMO projeto,
+    // então não existe a distinção com @@ApiCallHelper.GetApiUri que o original tinha) =====
+    const urlListar = '@Url.Action("Listar", "Funcionarios")';
+    const urlPesquisar = '@Url.Action("Pesquisar", "Funcionarios")';
+    const urlAdicionar = '@Url.Action("Adicionar", "Funcionarios")';
+    const urlEditar = '@Url.Action("Editar", "Funcionarios")';
+    const urlExcluir = '@Url.Action("Excluir", "Funcionarios")';
+    const urlRelatorio = '/api/relatorios/funcionarios';
+
+    let idEdicao = null; // null = modo "adicionar" | com valor = modo "editar"
+
+    $(function () {
+        moment.locale('pt-br');
+        $.datetimepicker.setLocale('pt-BR');
+
+        $('#txt-dt-nascimento').datetimepicker({
+            format: 'd/m/Y',
+            lang: 'pt-BR',
+            timepicker: false,
+            mask: '99/99/9999',
+            // máscara de digitação -> força 2 dígitos por bloco (01/05/1999, não 1/5/1999)
+            validateOnBlur: true
+        });
+
+        $('#txt-nome').autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: urlPesquisar,
+                    data: { termo: request.term },
+                    success: function (data) {
+                        response(data.map(function (item) {
+                            return { label: item.nome, value: item.nome, dados: item };
+                        }));
+                    }
+                });
+            },
+            minLength: 1,
+            select: function (event, ui) {
+                $('#txt-matricula').val(ui.item.dados.matricula);
+                $('#cbo-departamento').val(ui.item.dados.departamento);
+            }
+        });
+
+        buscarLista();
+
+        $('#btn-adicionar-registro').click(function () {
+            const nome = $('#txt-nome').val().toUpperCase();
+            // .toUpperCase() aqui muda o VALOR de verdade -> "text-uppercase" no CSS é só visual
+            const matricula = $('#txt-matricula').val();
+            const departamento = $('#cbo-departamento').val();
+            const sexo = $('#cbo-sexo').val();
+            const cargo = $('#txt-cargo').val().toUpperCase();
+            const salario = $('#txt-salario').val();
+            const dataNascimento = $('#txt-dt-nascimento').val();
+
+            const urlDestino = idEdicao === null ? urlAdicionar : urlEditar;
+
+            $.ajax({
+                url: urlDestino,
+                type: 'POST',
+                data: {
+                    Id: idEdicao,
+                    Nome: nome, Matricula: matricula, Departamento: departamento,
+                    Sexo: sexo, Cargo: cargo, Salario: salario, DataNascimento: dataNascimento
+                },
+                success: function (resposta) {
+                    if (resposta.sucesso === false) {
+                        alert(resposta.mensagem); // ver seção de melhorias no README -> dá pra trocar por um toast/modal melhor
+                        return;
+                    }
+                    buscarLista();
+                    idEdicao = null;
+                    limparFormulario();
+                },
+                error: function () {
+                    alert('Erro ao salvar funcionário.');
+                }
+            });
+        });
+
+        $('#table-funcionarios').on('dbl-click-row.bs.table', function (e, row) {
+            if ($(e.target).closest('.btn-excluir').length > 0) {
+                return;
+                // duplo-clique caiu no botão de excluir -> não é intenção de editar, ignora
+                // (bug real que apareceu no projeto original e foi corrigido aqui direto)
+            }
+
+            idEdicao = row.id;
+            $('#txt-nome').val(row.nome);
+            $('#txt-matricula').val(row.matricula);
+            $('#cbo-departamento').val(row.departamento);
+            $('#cbo-sexo').val(row.sexo);
+            $('#txt-cargo').val(row.cargo);
+            $('#txt-salario').val(row.salario);
+            $('#txt-dt-nascimento').val(moment(row.dataNascimento).format('DD/MM/YYYY'));
+            // formata com moment antes de colocar no campo -> outro bug real do projeto original:
+            // preencher com o valor "cru" quebrava o salvar (o back-end não conseguia converter
+            // a string bruta de volta pra DateTime)
+        });
+
+        $(document).on('click', '.btn-excluir', function () {
+            const id = $(this).data('id');
+            $.ajax({
+                url: urlExcluir,
+                type: 'POST',
+                data: { id: id },
+                success: function () { buscarLista(); },
+                error: function () { alert('Erro ao excluir funcionário.'); }
+            });
+        });
+    });
+
+    function limparFormulario() {
+        $('#txt-nome, #txt-matricula, #txt-cargo, #txt-salario, #txt-dt-nascimento').val('');
+        $('#cbo-departamento, #cbo-sexo').val('');
+    }
+
+    function buscarLista() {
+        $.ajax({
+            url: urlListar,
+            type: 'GET',
+            success: function (dados) { montarGrid(dados); },
+            error: function () { montarGrid([]); }
+        });
+    }
+
+    function montarGrid(dados) {
+        if (dados == null) dados = [];
+
+        $('#table-funcionarios').bootstrapTable('destroy');
+        $('#table-funcionarios').bootstrapTable({
+            data: dados,
+            pagination: true,
+            columns: [
+                {
+                    field: 'operate', title: 'Excluir', align: 'center',
+                    formatter: function (value, row) {
+                        return '<button class="btn btn-sm btn-danger btn-excluir" data-id="' + row.id + '"><i class="fas fa-trash-alt"></i></button>';
+                    }
+                },
+                { field: 'id', title: 'id', visible: false },
+                { field: 'nome', title: 'Nome' },
+                { field: 'matricula', title: 'Matrícula' },
+                { field: 'departamento', title: 'Departamento' },
+                { field: 'sexo', title: 'Sexo' },
+                { field: 'cargo', title: 'Cargo' },
+                {
+                    field: 'salario', title: 'Salário',
+                    formatter: function (value) {
+                        return value == null ? '-' : value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                },
+                {
+                    field: 'dataNascimento', title: 'Dt. Nascimento',
+                    formatter: function (value) {
+                        return value == null ? '-' : moment(value).format('DD/MM/YYYY');
+                    }
+                }
+            ]
+        });
+    }
+
+    async function GerarRelatorio(tipo) {
+        const linhas = $('#table-funcionarios').bootstrapTable('getData');
+
+        if (linhas.length === 0) {
+            alert('Não há registros para exportar.');
+            return;
+        }
+
+        const filtro = {
+            tipo: tipo,
+            geradoPor: 'Usuário Demo',
+            linhas: linhas
+        };
+
+        try {
+            const resposta = await fetch(urlRelatorio, {
+                method: 'POST',
+                body: JSON.stringify(filtro),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!resposta.ok) {
+                // Diferente do projeto original: aqui não precisamos checar o Content-Type da
+                // resposta pra descobrir se deu erro "disfarçado de sucesso" -> o back-end sempre
+                // devolve um status HTTP correto (400 em erro), então "response.ok" já basta.
+                const erro = await resposta.json();
+                alert(erro.mensagem || 'Erro ao gerar relatório.');
+                return;
+            }
+
+            const contentDisposition = resposta.headers.get('Content-Disposition');
+            let nomeArquivo = 'relatorio';
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (match) nomeArquivo = match[1];
+            }
+
+            const blob = await resposta.blob();
+            const urlBlob = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = urlBlob;
+            link.download = nomeArquivo;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(urlBlob);
+
+        } catch (erro) {
+            alert('Erro ao conectar com o servidor: ' + erro);
+        }
+    }
+</script>
+}

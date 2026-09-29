@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ClosedXML: geração do Excel (mesma lib usada no projeto original) -->
+    <PackageReference Include="ClosedXML" Version="0.104.1" />
+    <!-- QuestPDF: geração do PDF. Trocamos o iTextSharp do projeto original por essa lib
+         porque o iTextSharp mudou de licença (AGPL) nas versões novas para .NET moderno;
+         QuestPDF tem licença Community gratuita para uso pessoal/portfólio e uma API mais
+         simples, baseada em C# fluente em vez de manipulação manual de PDF de baixo nível. -->
+    <PackageReference Include="QuestPDF" Version="2024.10.3" />
+  </ItemGroup>
+
+</Project>

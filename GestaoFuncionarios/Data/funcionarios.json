@@ -1,0 +1,42 @@
+[
+  {
+    "Id": 1,
+    "Nome": "ANA BEATRIZ SOUZA",
+    "Matricula": "1000123",
+    "Departamento": "TI",
+    "Sexo": "F",
+    "Cargo": "DESENVOLVEDORA BACKEND",
+    "Salario": 9200.00,
+    "DataNascimento": "1996-03-12T00:00:00"
+  },
+  {
+    "Id": 2,
+    "Nome": "CARLOS EDUARDO LIMA",
+    "Matricula": "1000456",
+    "Departamento": "Financeiro",
+    "Sexo": "M",
+    "Cargo": "ANALISTA FINANCEIRO",
+    "Salario": 6500.00,
+    "DataNascimento": "1989-11-30T00:00:00"
+  },
+  {
+    "Id": 3,
+    "Nome": "MARIANA COSTA FERREIRA",
+    "Matricula": "1000789",
+    "Departamento": "RH",
+    "Sexo": "F",
+    "Cargo": "ANALISTA DE RH PLENO",
+    "Salario": 5800.00,
+    "DataNascimento": "1993-07-21T00:00:00"
+  },
+  {
+    "Id": 4,
+    "Nome": "PEDRO HENRIQUE ALVES",
+    "Matricula": "1000321",
+    "Departamento": "Operações",
+    "Sexo": "M",
+    "Cargo": "TECNICO EM SEGURANCA DO TRABALHO",
+    "Salario": 4200.00,
+    "DataNascimento": "1998-01-05T00:00:00"
+  }
+]
