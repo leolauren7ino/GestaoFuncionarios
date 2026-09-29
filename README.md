@@ -65,8 +65,6 @@ Data/funcionarios.json          -> dados fictícios de seed
 
 ## 🖼️ Preview
 
-*(adicione aqui um print ou GIF da tela funcionando — vale muito num README de portfólio)*
+<img width="1865" height="986" alt="image" src="https://github.com/user-attachments/assets/ba240786-d853-4119-b635-bac5d402fe78" />
 
-## 📄 Licença
 
-MIT — sinta-se livre pra usar como referência de estudo.
